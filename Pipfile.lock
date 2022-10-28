@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f722f74a0588a254d04e295d1b078b2be6fc27c2b483db55a99a9e60316c37f3"
+            "sha256": "10fee7deb82cd69b05ce711ada869c11ea8002d968c9c8219e5bf2ea257e43e1"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -50,6 +50,7 @@
                 "sha256:33995a6753c30b7f577febfc2c50411fec6aac7f7ffeb7c4cfe5991072dcf9e6",
                 "sha256:5e1de4d849fee02c63b040a4a3fd567f4ab104defd8a5511fbbc24a8a017efbc"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.7'",
             "version": "==0.19"
         },
@@ -277,6 +278,23 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==8.1.3"
+        },
+        "docutils": {
+            "hashes": [
+                "sha256:33995a6753c30b7f577febfc2c50411fec6aac7f7ffeb7c4cfe5991072dcf9e6",
+                "sha256:5e1de4d849fee02c63b040a4a3fd567f4ab104defd8a5511fbbc24a8a017efbc"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.7'",
+            "version": "==0.19"
+        },
+        "docutils-stubs": {
+            "hashes": [
+                "sha256:157807309de24e8c96af9a13afe207410f1fc6e5aab5d974fd6b9191f04de327",
+                "sha256:1736d9650cfc20cff8c72582806c33a5c642694e2df9e430717e7da7e73efbdf"
+            ],
+            "index": "pypi",
+            "version": "==0.0.22"
         },
         "exceptiongroup": {
             "hashes": [
