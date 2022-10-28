@@ -1,0 +1,11 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+sphinx = ">=4.4.0,<6"
+
+[dev-packages]
+pytest = "==7.2.0"
+black = "==22.10.0"
