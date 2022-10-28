@@ -1,7 +1,8 @@
 from typing import Dict, List, Any
 from docutils import nodes
 from sphinx.util import logging
-from node import SEORedirectNode
+
+from .node import SEORedirectNode
 
 
 class DoctreeWalker(nodes.SparseNodeVisitor):
@@ -33,9 +34,7 @@ class DoctreeWalker(nodes.SparseNodeVisitor):
                 # FIXME: search the att array for "ids" instead of assuming it's at att[0]
                 section_id = att[1][0]
                 if section_id != "":
-                    self.logger.debug(
-                        "visit_section: visiting section %s" % section_id
-                    )
+                    self.logger.debug("visit_section: visiting section %s" % section_id)
                 break
         # look for redirective nodes; remove them when we're done
         redirects: List[str] = list()

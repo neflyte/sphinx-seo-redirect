@@ -7,9 +7,9 @@ from sphinx.util import logging
 from sphinx.util.console import bold, colorize, term_width_line  # type: ignore
 from typing import Dict, Mapping, Tuple, Any, List
 
-from node import SEORedirectNode
-from directive import SEORedirectDirective
-from walker import DoctreeWalker
+from .node import SEORedirectNode
+from .directive import SEORedirectDirective
+from .walker import DoctreeWalker
 
 # Global Sphinx configuration options
 CONFIG_HTML_BASEURL = "html_baseurl"
@@ -48,6 +48,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     """
     # FIXME: add config setting for template HTML file
     # FIXME: add config setting for redirect title
+
     app.add_config_value(CONFIG_OPTION_REDIRECTS, OPTION_REDIRECTS_DEFAULT, "env")
     app.add_config_value(
         CONFIG_OPTION_TEMPLATE_FILE, OPTION_TEMPLATE_FILE_DEFAULT, "env"

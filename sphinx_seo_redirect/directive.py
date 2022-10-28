@@ -2,7 +2,8 @@ from typing import List
 from docutils import nodes
 from sphinx.util import logging
 from sphinx.util.docutils import SphinxDirective
-from node import SEORedirectNode
+
+from .node import SEORedirectNode
 
 
 class SEORedirectDirective(SphinxDirective):
