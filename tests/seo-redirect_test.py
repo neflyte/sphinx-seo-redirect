@@ -2,7 +2,6 @@
 Redirect tests
 """
 from sphinx_seo_redirect.sphinx import (
-    setup as ext_setup,
     builder_inited as ext_builder_inited,
     env_updated as ext_env_updated,
     html_page_context as ext_html_page_context,
@@ -20,6 +19,7 @@ from sphinx_seo_redirect.sphinx import (
     ENV_REDIRECTS_ENABLED,
     ENV_INTRA_PAGE_FRAGMENT_PAGES,
 )
+from sphinx_seo_redirect import setup as ext_setup
 from typing import Dict, List
 
 

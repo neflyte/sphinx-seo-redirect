@@ -36,7 +36,7 @@ class DoctreeWalker(nodes.SparseNodeVisitor):
                 if section_id != "":
                     self.logger.debug("visit_section: visiting section %s" % section_id)
                 break
-        # look for redirective nodes; remove them when we're done
+        # look for SEORedirectNode nodes; remove them when we're done
         redirects: List[str] = list()
         for child in node.children:
             if isinstance(child, SEORedirectNode):
