@@ -14,16 +14,16 @@ CONFIG_HTML_BASEURL = "html_baseurl"
 # Configuration options
 CONFIG_OPTION_REDIRECTS = "redirects"
 CONFIG_OPTION_TEMPLATE_FILE = "redirect_html_template_file"
-CONFIG_MM_URL_PATH_PREFIX = "mm_url_path_prefix"
+CONFIG_URL_PATH_PREFIX = "url_path_prefix"
 CONFIG_WRITE_EXTENSIONLESS_PAGES = "redirect_write_extensionless_pages"
 # Option defaults
 OPTION_REDIRECTS_DEFAULT: Dict[str, str] = dict()
 OPTION_TEMPLATE_FILE_DEFAULT = None
 WRITE_EXTENSIONLESS_PAGES_DEFAULT = False
-MM_URL_PATH_PREFIX_DEFAULT = ""
+URL_PATH_PREFIX_DEFAULT = ""
 # Environment keys
 ENV_REDIRECTS_ENABLED = "redirects-enabled"
-ENV_COMPUTED_REDIRECTS = "computed-redirects"
+ENV_COMPUTED_REDIRECTS = "computed-redirects"  # Dict[str, Dict[str, str]]
 ENV_INTRA_PAGE_FRAGMENT_PAGES = "intra-page-fragment-pages"
 ENV_EXTENSIONLESS_PAGES = "extensionless-pages"
 ENV_DOCTREE_REDIRECTS = "doctree-redirects"  # Dict[str, List[str]]
@@ -280,8 +280,8 @@ def compute_redirects(
     # read parameters from config
     html_baseurl: str = getattr(app.config, CONFIG_HTML_BASEURL)
     html_baseurl = html_baseurl.removesuffix("/")
-    mm_url_path_prefix: str = getattr(app.config, CONFIG_MM_URL_PATH_PREFIX)
-    mm_url_path_prefix = mm_url_path_prefix.removesuffix("/")
+    url_path_prefix: str = getattr(app.config, CONFIG_URL_PATH_PREFIX)
+    url_path_prefix = url_path_prefix.removesuffix("/")
     # process each record in the redirects dict
     for source in redirects_option.keys():
         # split the URL on # so we get the path and page name + the fragment, if any
@@ -315,8 +315,8 @@ def compute_redirects(
             logger.warning("compute_redirects(): empty target for source %s" % source)
             continue
         # if mm_url_path_prefix is defined and the target path starts with '/', prepend it to the target path.
-        if mm_url_path_prefix != "" and target.startswith("/"):
-            target = mm_url_path_prefix + target
+        if url_path_prefix != "" and target.startswith("/"):
+            target = url_path_prefix + target
         # if there's no fragment then we're redirecting to the "default page", which is
         # the `pagename` without any fragment.
         if fragment == "":

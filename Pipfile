@@ -9,5 +9,5 @@ docutils = ">=0.18"
 
 [dev-packages]
 pytest = "==7.2.0"
-black = "==22.10.0"
 docutils-stubs = "==0.0.22"
+black = {version = "==22.10.0", extras = ["d"]}

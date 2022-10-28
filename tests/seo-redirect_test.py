@@ -10,7 +10,7 @@ from sphinx_seo_redirect.sphinx import (
     build_js_object as ext_build_js_object,
     CONFIG_OPTION_REDIRECTS,
     CONFIG_OPTION_TEMPLATE_FILE,
-    CONFIG_MM_URL_PATH_PREFIX,
+    CONFIG_URL_PATH_PREFIX,
     CONFIG_WRITE_EXTENSIONLESS_PAGES,
     CTX_HAS_FRAGMENT_REDIRECTS,
     CTX_FRAGMENT_REDIRECTS,
@@ -32,7 +32,7 @@ class TestSetup:
         assert result["parallel_write_safe"]
         assert hasattr(app.config, CONFIG_OPTION_REDIRECTS)
         assert hasattr(app.config, CONFIG_OPTION_TEMPLATE_FILE)
-        assert hasattr(app.config, CONFIG_MM_URL_PATH_PREFIX)
+        assert hasattr(app.config, CONFIG_URL_PATH_PREFIX)
         assert hasattr(app.config, CONFIG_WRITE_EXTENSIONLESS_PAGES)
 
 
