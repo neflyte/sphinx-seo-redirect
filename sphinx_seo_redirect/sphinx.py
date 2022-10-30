@@ -22,11 +22,10 @@ OPTION_TEMPLATE_FILE_DEFAULT = None
 WRITE_EXTENSIONLESS_PAGES_DEFAULT = False
 URL_PATH_PREFIX_DEFAULT = ""
 # Environment keys
-ENV_REDIRECTS_ENABLED = "redirects-enabled"
-ENV_COMPUTED_REDIRECTS = "computed-redirects"  # Dict[str, Dict[str, str]]
+ENV_COMPUTED_REDIRECTS = "computed-redirects"
 ENV_INTRA_PAGE_FRAGMENT_PAGES = "intra-page-fragment-pages"
 ENV_EXTENSIONLESS_PAGES = "extensionless-pages"
-ENV_DOCTREE_REDIRECTS = "doctree-redirects"  # Dict[str, List[str]]
+ENV_DOCTREE_REDIRECTS = "doctree-redirects"
 # HTML context keys
 CTX_HAS_FRAGMENT_REDIRECTS = "has_fragment_redirects"
 CTX_FRAGMENT_REDIRECTS = "fragment_redirects"
@@ -38,19 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 def builder_inited(app: Sphinx):
-    setattr(app.env, ENV_REDIRECTS_ENABLED, True)
-    if not app.config[CONFIG_OPTION_REDIRECTS]:
-        logger.warning(
-            "No redirects configured; disabling redirects extension for this build"
-        )
-        setattr(app.env, ENV_REDIRECTS_ENABLED, False)
-        return
-    if len(app.config[CONFIG_OPTION_REDIRECTS]) == 0:
-        logger.warning(
-            "Empty redirect definition; disabling redirects extension for this build"
-        )
-        setattr(app.env, ENV_REDIRECTS_ENABLED, False)
-        return
+    setattr(app.env, ENV_COMPUTED_REDIRECTS, dict())
     setattr(app.env, ENV_DOCTREE_REDIRECTS, dict())
 
 
@@ -64,7 +51,9 @@ def env_purge_doc(app: Sphinx, env: BuildEnvironment, docname: str) -> None:
     :param docname: The name of the document to purge
     """
     if hasattr(env, ENV_DOCTREE_REDIRECTS):
-        doctree_redirects: Dict[str, List[str]] = getattr(env, ENV_DOCTREE_REDIRECTS)
+        doctree_redirects: Dict[str, Dict[str, List[str]]] = getattr(
+            env, ENV_DOCTREE_REDIRECTS
+        )
         if docname in doctree_redirects:
             logger.verbose(
                 "env_purge_doc: redirects contains %s; removing it" % docname
@@ -81,34 +70,35 @@ def env_merge_info(
 
     :param app: The Sphinx Application instance; unused
     :param env: The master Sphinx BuildEnvironment
-    :param docnames: A list of the document names to merge; unused
+    :param docnames: A list of the document names to merge
     :param other: The Sphinx BuildEnvironment from the reader worker
     """
     # Add any links that were present in the reader worker's environment
     if hasattr(other, ENV_DOCTREE_REDIRECTS):
-        doctree_redirects: Dict[str, List[str]] = getattr(env, ENV_DOCTREE_REDIRECTS)
-        other_redirects: Dict[str, List[str]] = getattr(other, ENV_DOCTREE_REDIRECTS)
-        for linkKey in other_redirects:
-            if linkKey in doctree_redirects:
-                doctree_redirects[linkKey].extend(other_redirects[linkKey])
-            else:
-                doctree_redirects[linkKey] = other_redirects[linkKey]
+        doctree_redirects: Dict[str, Dict[str, List[str]]] = getattr(
+            env, ENV_DOCTREE_REDIRECTS
+        )
+        other_redirects: Dict[str, Dict[str, List[str]]] = getattr(
+            other, ENV_DOCTREE_REDIRECTS
+        )
+        for doc in docnames:
+            doctree_redirects[doc] = other_redirects[doc]
 
 
 def env_updated(app: Sphinx, env: BuildEnvironment) -> List[str]:
-    is_enabled: bool = getattr(app.env, ENV_REDIRECTS_ENABLED)
-    if not is_enabled:
-        return list()
-    """
-    to do:
-    - overlay redirects from config onto redirects from doctree
-    """
-    doctree_redirects: Dict[str, List[str]] = getattr(app.env, ENV_DOCTREE_REDIRECTS)
+    # compute list of redirects from the doctree
+    computed_doctree_redirects: Dict[str, str] = compute_doctree_redirects(app)
+    # get the list of redirects from the config
     redirects_option: Dict[str, str] = getattr(app.config, CONFIG_OPTION_REDIRECTS)
+    # overlay redirects from config onto redirects from doctree
+    for key in redirects_option:
+        computed_doctree_redirects[key] = redirects_option[key]
+    # compute the final set of redirects
     computed_redirects: Dict[str, Dict[str, str]] = compute_redirects(
-        app, redirects_option
+        app, computed_doctree_redirects
     )
     setattr(app.env, ENV_COMPUTED_REDIRECTS, computed_redirects)
+    # determine which pages contain intra_page_fragments
     intra_page_fragments: List[str] = list()
     for page in computed_redirects.keys():
         if page in env.all_docs:
@@ -123,9 +113,6 @@ def env_updated(app: Sphinx, env: BuildEnvironment) -> List[str]:
 def html_page_context(
     app: Sphinx, pagename: str, templatename: str, context: Dict, doctree: Dict
 ) -> str:
-    is_enabled: bool = getattr(app.env, ENV_REDIRECTS_ENABLED)
-    if not is_enabled:
-        return templatename
     context[CTX_HAS_FRAGMENT_REDIRECTS] = False
     intra_page_fragments: List[str] = getattr(app.env, ENV_INTRA_PAGE_FRAGMENT_PAGES)
     if pagename in intra_page_fragments:
@@ -148,9 +135,6 @@ def html_collect_pages(app: Sphinx) -> List[Tuple[str, Dict[str, Any], str]]:
     :param app: The Sphinx Application instance
     :return: The list of redirect pages to create
     """
-    is_enabled: bool = getattr(app.env, ENV_REDIRECTS_ENABLED)
-    if not is_enabled:
-        return list()
     redirect_pages: List[Tuple[str, Dict[str, Any], str]] = list()
     extensionless_pages: List[str] = list()
     write_extensionless_pages: bool = getattr(
@@ -171,14 +155,15 @@ def html_collect_pages(app: Sphinx) -> List[Tuple[str, Dict[str, Any], str]]:
         if len(computed_redirects[page]) == 1:
             # if this page only has a redirect to the DEFAULT_PAGE, then use a simple redirect template
             if DEFAULT_PAGE in computed_redirects[page]:
+                default_page = computed_redirects[page][DEFAULT_PAGE]
                 logger.verbose(
                     "html_collect_pages(): simple redirect from %s to %s"
-                    % (page, computed_redirects[page][DEFAULT_PAGE])
+                    % (page, default_page)
                 )
                 redirect_pages.append(
                     (
                         page,
-                        {"to_uri": computed_redirects[page][DEFAULT_PAGE]},
+                        {"to_uri": default_page},
                         "simpleredirect.html",  # TODO: move this into a config variable
                     )
                 )
@@ -223,26 +208,14 @@ def doctree_resolved(app: Sphinx, doctree: nodes.document, docname: str) -> None
     :param docname: The name of the document
     :return:
     """
-    # FIXME: replace seo_redirect_redirects with the appropriate constant
-    doctree_walker: DoctreeWalker = DoctreeWalker(doctree)
+    doctree_walker = DoctreeWalker(doctree)
     doctree.walk(doctree_walker)
     if len(doctree_walker.section_redirects) == 0:
         return
-    if not hasattr(app.env, "seo_redirect_redirects"):
-        app.env.seo_redirect_redirects = dict()
-    for section_id in doctree_walker.section_redirects:
-        # from: section_redirects[section_id]...
-        for redirect_from in doctree_walker.section_redirects[section_id]:
-            # to: docname + '#' + section_id
-            if section_id == doctree_walker.root_section:
-                redirect_to = docname
-            else:
-                redirect_to = "%s#%s" % (docname, section_id)
-            logger.verbose(" >> %s" % redirect_to)
-            if redirect_from in app.env.seo_redirect_redirects:
-                app.env.seo_redirect_redirects[redirect_from].append(redirect_to)
-            else:
-                app.env.seo_redirect_redirects[redirect_from] = [redirect_to]
+    doctree_redirects: Dict[str, Dict[str, List[str]]] = getattr(
+        app.env, ENV_DOCTREE_REDIRECTS
+    )
+    doctree_redirects[docname] = doctree_walker.section_redirects
 
 
 def build_finished(app: Sphinx, exception: Exception):
@@ -271,6 +244,31 @@ def build_finished(app: Sphinx, exception: Exception):
                     % (source_file, target_file)
                 )
                 copyfile(source_file, target_file)
+
+
+def compute_doctree_redirects(app: Sphinx) -> Dict[str, str]:
+    # Dict[fromdoc, toURL]
+    computed_doctree_redirects: Dict[str, str] = dict()
+    # Dict[docname, Dict[section, List[olddocs]]]
+    doctree_redirects: Dict[str, Dict[str, List[str]]] = getattr(
+        app.env, ENV_DOCTREE_REDIRECTS
+    )
+    # read parameters from config
+    html_baseurl: str = getattr(app.config, CONFIG_HTML_BASEURL)
+    html_baseurl = html_baseurl.removesuffix("/")
+    url_path_prefix: str = getattr(app.config, CONFIG_URL_PATH_PREFIX)
+    url_path_prefix = url_path_prefix.removesuffix("/")
+    # iterate through doctree_redirects and "invert" the data structure
+    for doc in doctree_redirects:
+        for section in doctree_redirects[doc]:
+            for old_doc in doctree_redirects[doc][section]:
+                computed_doctree_redirects[old_doc] = "%s/%s/%s#%s" % (
+                    html_baseurl,
+                    url_path_prefix,
+                    doc,
+                    section,
+                )
+    return computed_doctree_redirects
 
 
 def compute_redirects(
@@ -314,7 +312,7 @@ def compute_redirects(
         if target == "":
             logger.warning("compute_redirects(): empty target for source %s" % source)
             continue
-        # if mm_url_path_prefix is defined and the target path starts with '/', prepend it to the target path.
+        # if url_path_prefix is defined and the target path starts with '/', prepend it to the target path.
         if url_path_prefix != "" and target.startswith("/"):
             target = url_path_prefix + target
         # if there's no fragment then we're redirecting to the "default page", which is
