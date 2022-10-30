@@ -1,6 +1,3 @@
-"""
-Redirect tests
-"""
 from sphinx_seo_redirect.sphinx import (
     builder_inited as ext_builder_inited,
     env_updated as ext_env_updated,
@@ -9,55 +6,26 @@ from sphinx_seo_redirect.sphinx import (
     compute_redirects as ext_compute_redirects,
     build_js_object as ext_build_js_object,
     CONFIG_OPTION_REDIRECTS,
-    CONFIG_OPTION_TEMPLATE_FILE,
-    CONFIG_URL_PATH_PREFIX,
-    CONFIG_WRITE_EXTENSIONLESS_PAGES,
     CTX_HAS_FRAGMENT_REDIRECTS,
     CTX_FRAGMENT_REDIRECTS,
     DEFAULT_PAGE,
     ENV_COMPUTED_REDIRECTS,
-    ENV_REDIRECTS_ENABLED,
     ENV_INTRA_PAGE_FRAGMENT_PAGES,
+    ENV_DOCTREE_REDIRECTS,
 )
 from sphinx_seo_redirect import setup as ext_setup
 from typing import Dict, List
 
 
-class TestSetup:
-    def test_nominal(self, app):
-        result = ext_setup(app)
-        assert "parallel_read_safe" in result
-        assert result["parallel_read_safe"]
-        assert "parallel_write_safe" in result
-        assert result["parallel_write_safe"]
-        assert hasattr(app.config, CONFIG_OPTION_REDIRECTS)
-        assert hasattr(app.config, CONFIG_OPTION_TEMPLATE_FILE)
-        assert hasattr(app.config, CONFIG_URL_PATH_PREFIX)
-        assert hasattr(app.config, CONFIG_WRITE_EXTENSIONLESS_PAGES)
-
-
 class TestBuilderInited:
     def test_nominal(self, app):
         ext_setup(app)
-        app.config[CONFIG_OPTION_REDIRECTS] = dict({"foo": "bar"})
         ext_builder_inited(app)
         assert hasattr(app.env, ENV_COMPUTED_REDIRECTS)
-        computed_redirects: Dict[str, str] = getattr(app.env, ENV_COMPUTED_REDIRECTS)
-        assert len(computed_redirects) == 1
+        assert hasattr(app.env, ENV_DOCTREE_REDIRECTS)
 
-    def test_no_config_value(self, app):
-        ext_setup(app)
-        app.config[CONFIG_OPTION_REDIRECTS] = None
-        ext_builder_inited(app)
-        assert not getattr(app.env, ENV_REDIRECTS_ENABLED)
-        assert not hasattr(app.env, ENV_COMPUTED_REDIRECTS)
 
-    def test_empty_config_value(self, app):
-        ext_setup(app)
-        app.config[CONFIG_OPTION_REDIRECTS] = dict()
-        ext_builder_inited(app)
-        assert not getattr(app.env, ENV_REDIRECTS_ENABLED)
-        assert not hasattr(app.env, ENV_COMPUTED_REDIRECTS)
+# TODO: env_purge_doc, env_merge_info
 
 
 class TestEnvUpdated:
@@ -73,13 +41,6 @@ class TestEnvUpdated:
         )
         assert len(intra_page_fragments) == 1
         assert intra_page_fragments[0] == "foo"
-
-    def test_redirects_disabled(self, app):
-        ext_setup(app)
-        app.config[CONFIG_OPTION_REDIRECTS] = None
-        ext_builder_inited(app)
-        ext_env_updated(app, app.env)
-        assert not hasattr(app.env, ENV_INTRA_PAGE_FRAGMENT_PAGES)
 
     def test_fragment_not_in_alldocs(self, app):
         ext_setup(app)
@@ -98,9 +59,6 @@ class TestEnvUpdated:
         app.env.all_docs["foo"] = 0
         app.config[CONFIG_OPTION_REDIRECTS] = dict({"": "fnord"})
         ext_builder_inited(app)
-        assert hasattr(app.env, ENV_COMPUTED_REDIRECTS)
-        computed_redirects: Dict[str, str] = getattr(app.env, ENV_COMPUTED_REDIRECTS)
-        assert len(computed_redirects) == 0
         ext_env_updated(app, app.env)
         assert hasattr(app.env, ENV_INTRA_PAGE_FRAGMENT_PAGES)
         intra_page_fragments: List[str] = getattr(
@@ -126,17 +84,6 @@ class TestHtmlPageContext:
         assert len(ctx) == 2
         assert ctx[CTX_HAS_FRAGMENT_REDIRECTS]
         assert ctx[CTX_FRAGMENT_REDIRECTS] == expected_fragment_redirects
-
-    def test_redirects_disabled(self, app):
-        expected_templatename = "template.html"
-        ext_setup(app)
-        app.config[CONFIG_OPTION_REDIRECTS] = None
-        ext_builder_inited(app)
-        ext_env_updated(app, app.env)
-        ctx = dict()
-        templatename = ext_html_page_context(app, "foo", "template.html", ctx, dict())
-        assert templatename == expected_templatename
-        assert len(ctx) == 0
 
     def test_page_not_in_fragments(self, app):
         expected_templatename = "template.html"
@@ -189,6 +136,9 @@ class TestHtmlCollectPages:
         collected_pages = ext_html_collect_pages(app)
         assert len(collected_pages) == 1
         assert collected_pages[0] == expected_collected_page
+
+
+# TODO: doctree_resolved, build_finished. compute_doctree_redirects
 
 
 class TestComputeRedirects:
